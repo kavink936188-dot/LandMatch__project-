@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="css/style.css"><title>My listings – LandMatch</title></head>
+<body>
+<header id="nav"></header>
+<main class="wrap section">
+  <div class="page-head"><h1 style="font-size:2.2rem">My listings</h1><p class="muted">Post land, track review status, and see how many buyers are looking for something like it.</p></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="split">
+    <form class="panel" id="land-form">
+      <h2>Post new land</h2>
+      <div class="note">Listings with ownership documents (patta, chitta, EC) and a survey number go live faster. Documents are visible only to you and LandMatch admins.</div>
+      <div class="field"><label for="title">Title</label><input id="title" name="title" required minlength="5" maxlength="200" placeholder="2 acre coconut farm near Udumalpet"></div>
+      <div class="grid2">
+        <div class="field"><label for="land_type">Land type</label><select id="land_type" name="land_type"></select></div>
+        <div class="field"><label for="district">District</label><select id="district" name="district"></select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="village">Village / area</label><input id="village" name="village"></div>
+        <div class="field"><label for="survey_number">Survey number</label><input id="survey_number" name="survey_number" placeholder="e.g. 123/4A"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="area">Area</label>
+          <div class="inline-pair"><input id="area" type="number" min="0.01" step="any" required>
+            <select id="unit"><option value="cent">cents</option><option value="acre">acres</option><option value="sqft">sq ft</option></select></div></div>
+        <div class="field"><label for="price">Total price (₹)</label><input id="price" type="number" min="1" step="any" required><div class="hint" id="price-hint"></div></div>
+      </div>
+      <div class="field"><label for="address">Landmark / address</label><input id="address" name="address"></div>
+      <div class="grid2">
+        <div class="field"><label for="latitude">Latitude</label><input id="latitude" type="number" step="any"></div>
+        <div class="field"><label for="longitude">Longitude</label><input id="longitude" type="number" step="any"></div>
+      </div>
+      <button type="button" class="btn ghost small" id="locate" style="margin:-4px 0 14px">Use my current location</button>
+      <div class="field"><label for="description">Description</label><textarea id="description" name="description" placeholder="Water source, road access, soil type, nearby landmarks"></textarea></div>
+      <div class="field"><label for="images">Photos (up to 8, 5 MB each)</label><input id="images" type="file" accept="image/*" multiple></div>
+      <div class="field"><label for="documents">Ownership documents (PDF or image, up to 5)</label><input id="documents" type="file" accept=".pdf,image/*" multiple></div>
+      <button class="btn" id="submit-btn" style="width:100%">Submit listing</button>
+    </form>
+
+    <section><h2>Your listings</h2><div id="mine"></div></section>
+  </div>
+</main>
+<script src="js/common.js"></script>
+<script src="js/seller.js"></script>
+</body></html>

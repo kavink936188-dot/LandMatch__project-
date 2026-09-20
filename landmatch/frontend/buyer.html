@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="css/style.css"><title>My requirements – LandMatch</title></head>
+<body>
+<header id="nav"></header>
+<main class="wrap section">
+  <div class="page-head"><h1 style="font-size:2.2rem">What are you looking for?</h1>
+    <p class="muted">Save a requirement and LandMatch ranks every live listing against it. Change it anytime.</p></div>
+
+  <div class="split">
+    <form class="panel" id="req-form">
+      <h2>New requirement</h2>
+      <div class="row" style="margin-bottom:14px">
+        <button type="button" class="mic" id="mic" aria-label="Fill the form by voice" aria-pressed="false" title="Fill the form by voice">🎤</button>
+        <select id="lang" style="width:auto"><option value="en-IN">English</option><option value="ta-IN">தமிழ்</option><option value="hi-IN">हिन्दी</option></select>
+        <span class="hint" id="voice-status" aria-live="polite">Say: “2 acres farmland in Erode under 40 lakhs”</span>
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="district">District</label><select id="district"></select></div>
+        <div class="field"><label for="land_type">Land type</label><select id="land_type"></select></div>
+      </div>
+      <div class="field"><label>Budget (₹ lakh)</label>
+        <div class="grid2"><input id="min_price" type="number" min="0" step="any" placeholder="Min"><input id="max_price" type="number" min="0" step="any" placeholder="Max"></div></div>
+      <div class="field"><label>Area</label>
+        <div class="grid3" style="grid-template-columns:1fr 1fr 110px"><input id="min_area" type="number" min="0" step="any" placeholder="Min"><input id="max_area" type="number" min="0" step="any" placeholder="Max">
+          <select id="unit"><option value="cent">cents</option><option value="acre">acres</option><option value="sqft">sq ft</option></select></div></div>
+      <div class="field"><label for="keywords">Keywords</label><input id="keywords" placeholder="borewell, highway, coconut"><div class="hint">Matched against the title, description and village.</div></div>
+      <button class="btn" style="width:100%">Save requirement</button>
+    </form>
+
+    <section><h2>Your requirements</h2><div id="reqs"></div></section>
+  </div>
+</main>
+<script src="js/common.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/buyer.js"></script>
+</body></html>

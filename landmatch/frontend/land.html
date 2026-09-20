@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="css/style.css"><title>Land details – LandMatch</title></head>
+<body>
+<header id="nav"></header>
+<main class="wrap section" id="page"><p class="muted">Loading…</p></main>
+<script src="js/common.js"></script>
+<script>
+const id = new URLSearchParams(location.search).get("id");
+const page = document.getElementById("page");
+
+function mapEmbed(lat, lon) {
+  const d = 0.01;
+  const bbox = [lon - d, lat - d, lon + d, lat + d].join("%2C");
+  return `<iframe class="osm" title="Map location" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lon}"></iframe>
+          <p class="hint"><a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}" target="_blank" rel="noopener">Open larger map</a></p>`;
+}
+
+function contactBox(l) {
+  if (l.status === "sold") return '<div class="panel"><h3>This land has been sold</h3><p class="muted">Browse other listings or save a requirement to get matched.</p></div>';
+  if (!Auth.token) return `<div class="panel"><h3>Contact the seller</h3><p class="muted">Log in to see the seller's phone number.</p><a class="btn" href="login.html?next=${encodeURIComponent("land.html?id=" + l.id)}">Log in to view contact</a></div>`;
+  const phone = l.seller_phone || "";
+  const wa = phone.length === 10 ? "91" + phone : phone;
+  return `<div class="panel"><h3>${esc(l.seller_name || "Seller")}</h3>
+    <p style="font-size:1.2rem;font-weight:600;margin-bottom:12px">${esc(phone)}</p>
+    <div class="row"><a class="btn" href="tel:${esc(phone)}">Call</a>
+    <a class="btn ghost" target="_blank" rel="noopener" href="https://wa.me/${esc(wa)}?text=${encodeURIComponent("Hi, I saw your land listing on LandMatch: " + l.title)}">WhatsApp</a></div>
+    <p class="hint" style="margin-top:12px">Visit the land and check the original patta, chitta and encumbrance certificate before paying anything. Never pay an advance online for a plot you haven't seen.</p></div>`;
+}
+
+async function init() {
+  try {
+    const l = await api("/lands/" + encodeURIComponent(id), { auth: !!Auth.token });
+    document.title = l.title + " – LandMatch";
+    const imgs = l.images || [];
+    page.innerHTML = `
+      ${l.status !== "approved" && l.status !== "sold" ? `<div class="note">This listing is <b>${esc(l.status)}</b> and only visible to you.</div>` : ""}
+      <div class="detail">
+        <div>
+          <div class="gallery">
+            <div class="main" id="main-img" ${imgs[0] ? `style="background-image:url('${imgs[0].url}')"` : ""}></div>
+            ${imgs.length > 1 ? `<div class="thumbs">${imgs.map((im, i) => `<button class="${i ? "" : "on"}" aria-label="Photo ${i + 1}" data-url="${im.url}" style="background-image:url('${im.url}')"></button>`).join("")}</div>` : ""}
+          </div>
+          <h1 style="font-size:2rem;margin-top:22px">${esc(l.title)}</h1>
+          <p class="loc">${esc([l.village, l.district].filter(Boolean).join(", "))}${l.address ? " · " + esc(l.address) : ""}</p>
+          <p style="white-space:pre-line">${esc(l.description) || '<span class="muted">The seller hasn\'t added a description.</span>'}</p>
+          ${l.latitude != null && l.longitude != null ? mapEmbed(l.latitude, l.longitude) : ""}
+        </div>
+        <aside>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="price-big">${fmtPrice(l.price)}</div>
+            <p class="muted">₹${(l.price_per_sqft || 0).toLocaleString("en-IN")} per sq ft</p>
+            <dl class="facts">
+              <div><dt>Area</dt><dd>${fmtArea(l.area_sqft)}</dd></div>
+              <div><dt>Type</dt><dd style="text-transform:capitalize">${esc(l.land_type)}</dd></div>
+              <div><dt>District</dt><dd>${esc(l.district)}</dd></div>
+              <div><dt>Posted</dt><dd>${fmtDate(l.created_at)}</dd></div>
+              <div><dt>Documents</dt><dd>${l.document_count ? l.document_count + " uploaded" : "None uploaded"}</dd></div>
+              ${l.survey_number ? `<div><dt>Survey no.</dt><dd>${esc(l.survey_number)}</dd></div>` : ""}
+            </dl>
+          </div>
+          ${contactBox(l)}
+        </aside>
+      </div>`;
+    document.querySelectorAll(".thumbs button").forEach(b => b.onclick = () => {
+      document.getElementById("main-img").style.backgroundImage = `url('${b.dataset.url}')`;
+      document.querySelectorAll(".thumbs button").forEach(x => x.classList.toggle("on", x === b));
+    });
+  } catch (e) {
+    page.innerHTML = `<div class="empty"><h2>Listing not found</h2><p>${esc(e.message)}</p><a class="btn" href="index.html">Browse land</a></div>`;
+  }
+}
+init();
+</script>
+</body></html>

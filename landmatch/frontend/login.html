@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="css/style.css"><title>Log in – LandMatch</title></head>
+<body>
+<header id="nav"></header>
+<main class="wrap">
+  <div class="panel auth-box">
+    <div class="tabs" role="tablist">
+      <button class="on" id="tab-login" type="button">Log in</button>
+      <button id="tab-reg" type="button">Create account</button>
+    </div>
+
+    <form id="login-form">
+      <div class="field"><label for="l-email">Email</label><input id="l-email" type="email" required autocomplete="email"></div>
+      <div class="field"><label for="l-pass">Password</label><input id="l-pass" type="password" required autocomplete="current-password"></div>
+      <button class="btn" style="width:100%">Log in</button>
+    </form>
+
+    <form id="reg-form" hidden>
+      <div class="field"><label>I want to</label>
+        <select id="r-role"><option value="buyer">Buy land</option><option value="seller">Sell land</option></select></div>
+      <div class="field"><label for="r-name">Full name</label><input id="r-name" required minlength="2"></div>
+      <div class="field"><label for="r-email">Email</label><input id="r-email" type="email" required autocomplete="email"></div>
+      <div class="field"><label for="r-phone">Phone (shown to logged-in buyers)</label><input id="r-phone" type="tel" required placeholder="10-digit mobile number"></div>
+      <div class="field"><label for="r-pass">Password</label><input id="r-pass" type="password" required minlength="6" autocomplete="new-password"><div class="hint">At least 6 characters.</div></div>
+      <button class="btn" style="width:100%">Create account</button>
+    </form>
+  </div>
+</main>
+<script src="js/common.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const next = new URLSearchParams(location.search).get("next");
+function done(data) { Auth.save(data.access_token, data.user); location.href = next && /^[a-z]+\.html/.test(next) ? next : Auth.home(data.user.role); }
+function tab(reg) { $("login-form").hidden = reg; $("reg-form").hidden = !reg; $("tab-login").classList.toggle("on", !reg); $("tab-reg").classList.toggle("on", reg); }
+$("tab-login").onclick = () => tab(false); $("tab-reg").onclick = () => tab(true);
+if (Auth.user) location.href = Auth.home(Auth.user.role);
+
+$("login-form").onsubmit = async e => {
+  e.preventDefault();
+  try { done(await api("/users/login", { method: "POST", auth: false, form: new URLSearchParams({ username: $("l-email").value, password: $("l-pass").value }) })); }
+  catch (err) { toast(err.message, true); }
+};
+$("reg-form").onsubmit = async e => {
+  e.preventDefault();
+  try { done(await api("/users/register", { method: "POST", auth: false, body: { name: $("r-name").value, email: $("r-email").value, phone: $("r-phone").value, password: $("r-pass").value, role: $("r-role").value } })); }
+  catch (err) { toast(err.message, true); }
+};
+</script>
+</body></html>

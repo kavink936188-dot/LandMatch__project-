@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+landmatch.db
+uploads/images/*
+uploads/documents/*
+!uploads/images/.gitkeep
+!uploads/documents/.gitkeep
+.pytest_cache/

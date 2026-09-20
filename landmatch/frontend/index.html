@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="css/style.css"><title>LandMatch – Verified land listings in Tamil Nadu</title></head>
+<body>
+<header id="nav"></header>
+
+<section class="hero">
+  <svg class="map" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <g fill="#cfe0c8" stroke="#1f4e79" stroke-opacity=".28" stroke-width="1.5">
+      <polygon points="0,40 210,20 260,140 60,190 0,150"/><polygon points="210,20 430,50 400,170 260,140" fill="#dcead5"/>
+      <polygon points="430,50 640,10 700,120 560,200 400,170" fill="#c3d8bb"/><polygon points="640,10 900,40 930,170 700,120" fill="#d6e6cf"/>
+      <polygon points="900,40 1200,0 1200,150 930,170"/><polygon points="60,190 260,140 400,170 340,320 90,340" fill="#d6e6cf"/>
+      <polygon points="400,170 560,200 620,330 480,410 340,320" fill="#e2eddc"/><polygon points="560,200 700,120 930,170 880,320 620,330" fill="#c9dcc1"/>
+      <polygon points="930,170 1200,150 1200,400 880,320" fill="#dcead5"/><polygon points="0,150 60,190 90,340 0,420" fill="#c3d8bb"/>
+    </g>
+    <g font-family="Figtree,sans-serif" font-size="13" fill="#1f4e79" fill-opacity=".55">
+      <text x="90" y="90">Sy.No 214/3A</text><text x="290" y="110">88/2</text><text x="480" y="120">Sy.No 143/1B</text>
+      <text x="740" y="90">52/7</text><text x="1010" y="100">Sy.No 310/4</text><text x="170" y="270">17/5C</text>
+      <text x="450" y="290">Sy.No 66/2</text><text x="690" y="260">201/9</text><text x="1030" y="260">Sy.No 12/8A</text>
+    </g>
+  </svg>
+  <div class="wrap">
+    <h1>Land in Tamil Nadu,<br>matched to what you need.</h1>
+    <p class="lead">Say or type the district, size and budget. Every listing is checked for duplicate survey numbers and unrealistic prices before it goes live.</p>
+    <form class="searchbox" id="nl-form" role="search">
+      <input id="nl-input" aria-label="Describe the land you want" placeholder="e.g. 2 acres agricultural land in Tiruppur under 60 lakhs">
+      <button type="button" class="mic" id="mic" title="Speak your search" aria-label="Speak your search" aria-pressed="false">🎤</button>
+      <button class="btn alt" type="submit">Search</button>
+    </form>
+    <div class="voice-row">
+      <label for="lang" style="margin:0;font-weight:500">Speak in</label>
+      <select id="lang"><option value="en-IN">English</option><option value="ta-IN">தமிழ்</option><option value="hi-IN">हिन्दी</option></select>
+      <span id="voice-status" aria-live="polite"></span>
+    </div>
+  </div>
+</section>
+
+<main class="wrap section">
+  <div class="filters">
+    <div><label for="f-district">District</label><select id="f-district"></select></div>
+    <div><label for="f-type">Land type</label><select id="f-type"></select></div>
+    <div><label for="f-max">Max price (₹ lakh)</label><input id="f-max" type="number" min="0" placeholder="Any"></div>
+    <div><label for="f-sort">Sort by</label>
+      <select id="f-sort"><option value="newest">Newest</option><option value="price_asc">Price: low to high</option><option value="price_desc">Price: high to low</option><option value="area_desc">Largest area</option></select></div>
+  </div>
+  <div class="parsed" id="parsed"></div>
+  <div class="cards" id="results"></div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/voice.js"></script>
+<script>
+const els = { d: document.getElementById("f-district"), t: document.getElementById("f-type"), max: document.getElementById("f-max"),
+              sort: document.getElementById("f-sort"), out: document.getElementById("results"), parsed: document.getElementById("parsed"),
+              input: document.getElementById("nl-input"), status: document.getElementById("voice-status") };
+
+function show(lands) {
+  els.out.innerHTML = lands.length ? lands.map(l => landCard(l)).join("")
+    : '<div class="empty" style="grid-column:1/-1">No land matches this search yet. Widen the price or district, or post a requirement so sellers can find you.</div>';
+}
+
+async function loadFiltered() {
+  els.parsed.innerHTML = "";
+  const p = new URLSearchParams({ sort: els.sort.value });
+  if (els.d.value) p.set("district", els.d.value);
+  if (els.t.value) p.set("land_type", els.t.value);
+  if (els.max.value) p.set("max_price", els.max.value * 1e5);
+  try { show(await api("/lands?" + p, { auth: !!Auth.token })); } catch (e) { toast(e.message, true); }
+}
+
+async function nlSearch(text) {
+  els.input.value = text;
+  try {
+    const r = await api("/buyers/voice-search?q=" + encodeURIComponent(text), { auth: !!Auth.token });
+    const c = [], pr = r.parsed;
+    if (pr.district) c.push(pr.district);
+    if (pr.land_type) c.push(pr.land_type);
+    if (pr.min_area) c.push("from " + fmtArea(pr.min_area));
+    if (pr.max_area) c.push("up to " + fmtArea(pr.max_area));
+    if (pr.min_price) c.push("above " + fmtPrice(pr.min_price));
+    if (pr.max_price) c.push("under " + fmtPrice(pr.max_price));
+    if (pr.q) c.push("text: " + pr.q);
+    els.parsed.innerHTML = '<span class="muted">Searching for</span> ' + c.map(x => '<span class="chip">' + esc(x) + "</span>").join(" ");
+    show(r.results);
+    if (window._speakResults) speak(r.results.length ? r.results.length + " listings found." : "No listings found.", document.getElementById("lang").value);
+  } catch (e) { toast(e.message, true); }
+}
+
+document.getElementById("nl-form").onsubmit = e => { e.preventDefault(); if (els.input.value.trim().length > 1) nlSearch(els.input.value.trim()); };
+initVoice({ button: document.getElementById("mic"), langSelect: document.getElementById("lang"),
+            onState: s => (els.status.textContent = s), onText: t => { window._speakResults = true; nlSearch(t); } });
+
+loadOptions({ el: els.d, kind: "district", blank: "All districts" }, { el: els.t, kind: "type", blank: "All types" }).then(loadFiltered);
+[els.d, els.t, els.sort].forEach(el => el.addEventListener("change", loadFiltered));
+els.max.addEventListener("change", loadFiltered);
+</script>
+</body></html>

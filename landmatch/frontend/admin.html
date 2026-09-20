@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="css/style.css"><title>Admin – LandMatch</title></head>
+<body>
+<header id="nav"></header>
+<main class="wrap section">
+  <div class="page-head"><h1 style="font-size:2.2rem">Review desk</h1>
+    <p class="muted">Listings are sorted by risk score. Open the documents and compare them with government records before approving.</p></div>
+  <div class="stats" id="stats"></div>
+  <div class="tabs" id="tabs">
+    <button data-s="pending" class="on">Pending</button><button data-s="approved">Approved</button>
+    <button data-s="rejected">Rejected</button><button data-s="sold">Sold</button><button data-s="users">Users</button>
+  </div>
+  <div id="list"></div>
+</main>
+<script src="js/common.js"></script>
+<script>
+const me = requireRole("admin");
+let current = "pending";
+const $ = id => document.getElementById(id);
+
+async function stats() {
+  const s = await api("/lands/admin/stats");
+  $("stats").innerHTML = `
+    <div class="stat"><b>${s.lands.pending}</b>Pending review</div>
+    <div class="stat"><b style="color:var(--danger)">${s.high_risk_pending}</b>High-risk pending</div>
+    <div class="stat"><b>${s.lands.approved}</b>Live listings</div>
+    <div class="stat"><b>${s.users}</b>Users</div>
+    <div class="stat"><b>${s.requirements}</b>Buyer requirements</div>`;
+}
+
+function riskClass(n) { return n >= 60 ? "high" : ""; }
+
+function landRow(l) {
+  return `<div class="list-item">
+    <div class="top"><h3 style="margin:0"><a href="land.html?id=${l.id}">${esc(l.title)}</a></h3>
+      <span class="chip status-${l.status}">${l.status}</span></div>
+    <p class="loc" style="margin:4px 0">${esc([l.village, l.district].filter(Boolean).join(", "))} · ${fmtArea(l.area_sqft)} · ${fmtPrice(l.price)} (₹${(l.price_per_sqft || 0).toLocaleString("en-IN")}/sq ft)</p>
+    <p class="hint">Seller: ${esc(l.seller_name)} · ${esc(l.seller_email)} · ${esc(l.seller_phone)} · Survey no: ${esc(l.survey_number || "none")}</p>
+    <div class="score risk ${riskClass(l.fraud_score)}"><i style="width:${l.fraud_score}%"></i></div>
+    <strong style="font-size:.9rem">Risk score ${l.fraud_score}/100</strong>
+    ${l.fraud_flags.length ? `<ul class="flags">${l.fraud_flags.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : '<p class="hint">No risk flags raised.</p>'}
+    <div class="row">
+      ${(l.documents || []).map(d => `<button class="btn ghost small" onclick="openDoc(${d.id})">View ${esc(d.name)}</button>`).join("")}
+    </div>
+    <div class="row" style="margin-top:12px">
+      <input id="note-${l.id}" placeholder="Note to seller (optional)" style="flex:1;min-width:200px" value="${esc(l.admin_note || "")}">
+      ${l.status !== "approved" ? `<button class="btn small" onclick="review(${l.id}, 'approve')">Approve</button>` : ""}
+      ${l.status !== "rejected" ? `<button class="btn danger small" onclick="review(${l.id}, 'reject')">Reject</button>` : ""}
+    </div></div>`;
+}
+
+function userRow(u) {
+  return `<div class="list-item"><div class="top"><div><h3 style="margin:0">${esc(u.name)} <span class="chip">${u.role}</span></h3>
+    <p class="hint" style="margin:2px 0 0">${esc(u.email)} · ${esc(u.phone)} · joined ${fmtDate(u.created_at)}</p></div>
+    ${u.id === me.id ? "" : `<button class="btn ${u.is_active ? "danger" : ""} small" onclick="toggleUser(${u.id})">${u.is_active ? "Suspend" : "Reactivate"}</button>`}</div></div>`;
+}
+
+async function load() {
+  $("list").innerHTML = '<p class="muted">Loading…</p>';
+  try {
+    if (current === "users") { $("list").innerHTML = (await api("/users/admin/list")).map(userRow).join(""); return; }
+    const lands = await api("/lands/admin/list?status=" + current);
+    $("list").innerHTML = lands.length ? lands.map(landRow).join("") : `<div class="empty">No ${current} listings.</div>`;
+  } catch (e) { toast(e.message, true); }
+}
+
+async function review(id, action) {
+  try {
+    await api(`/lands/admin/${id}/review`, { method: "POST", body: { action, note: $("note-" + id).value } });
+    toast(action === "approve" ? "Approved" : "Rejected"); stats(); load();
+  } catch (e) { toast(e.message, true); }
+}
+
+async function toggleUser(id) {
+  try { await api(`/users/admin/${id}/toggle`, { method: "POST" }); load(); } catch (e) { toast(e.message, true); }
+}
+
+// Documents need the auth header, so fetch as a blob and open it.
+async function openDoc(id) {
+  try {
+    const res = await fetch(`${API}/lands/documents/${id}`, { headers: { Authorization: "Bearer " + Auth.token } });
+    if (!res.ok) throw new Error("Could not open the document.");
+    window.open(URL.createObjectURL(await res.blob()), "_blank");
+  } catch (e) { toast(e.message, true); }
+}
+
+$("tabs").onclick = e => {
+  if (!e.target.dataset.s) return;
+  current = e.target.dataset.s;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b === e.target));
+  load();
+};
+if (me) { stats().catch(() => {}); load(); }
+</script>
+</body></html>
