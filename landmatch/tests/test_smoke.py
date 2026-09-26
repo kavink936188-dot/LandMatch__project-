@@ -2,12 +2,13 @@ import os, sys, tempfile
 tmp = tempfile.mkdtemp()
 os.environ["DATABASE_URL"] = f"sqlite:///{tmp}/t.db"
 os.environ["UPLOADS_DIR"] = f"{tmp}/uploads"
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from fastapi.testclient import TestClient
-from main import app
-from matching import parse_voice_query
+from fastapi.testclient import TestClient  # type: ignore[import-not-found]
+import importlib
 
+backend = importlib.import_module("backend")
+app = importlib.import_module("backend.main").app
 
 def reg(c, name, email, role):
     r = c.post("/api/users/register", json={"name": name, "email": email, "phone": "9876543210", "password": "secret123", "role": role})
@@ -67,8 +68,8 @@ def test_flow():
 
 
 def test_parser():
-    p = parse_voice_query("plot above 10 lakhs in Coimbatore")
+    p = backend.matching.parse_voice_query("plot above 10 lakhs in Coimbatore")
     assert p["min_price"] == 1e6 and p["district"] == "Coimbatore" and p["land_type"] == "residential"
-    p = parse_voice_query("5 cents house site below 1.5 crore")
+    p = backend.matching.parse_voice_query("5 cents house site below 1.5 crore")
     assert round(p["min_area"]) == round(5 * 435.6 * .75) and p["max_price"] == 1.5e7
-    assert "q" in parse_voice_query("something nice")
+    assert "q" in backend.matching.parse_voice_query("something nice")
